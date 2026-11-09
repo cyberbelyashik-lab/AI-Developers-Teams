@@ -1,1 +1,4 @@
-# AI-Developers-Teams
+AI-Developers-Teams/
+└── .github/
+    └── workflows/
+        └── tests.yml
