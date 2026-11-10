@@ -2,9 +2,9 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
-from backend.agents.definitions import get_all_agents, get_agent
+from backend.agents.definitions import AGENTS, get_all_agents, get_agent
 from backend.agents.runner import agent_runner
-from backend.agents.reputation import reputation
+from backend.agents.reputation import reputation_system as reputation
 from backend.coordinator.manager import coordinator
 from backend.memory.store import team_memory
 from backend.meetings.room import meeting_room
@@ -49,8 +49,9 @@ class VoteRequest(BaseModel):
 
 class ReputationRequest(BaseModel):
     agent_id: str
-    score: float = Field(ge=-10, le=10)
-    reason: str = Field(min_length=1, max_length=1000)
+    evaluator_id: str
+    scores: dict[str, int]
+    evidence: str = Field(min_length=1, max_length=1000)
 
 
 @app.get("/")
@@ -87,7 +88,7 @@ def agent_details(agent_id: str):
     agent = get_agent(agent_id)
     if agent is None:
         raise HTTPException(status_code=404, detail="Агент не найден")
-    return agent
+    return agent.to_dict()
 
 
 @app.post("/agents/{agent_id}/run")
@@ -96,6 +97,8 @@ async def run_agent(agent_id: str, request: RunAgentRequest):
         raise HTTPException(status_code=404, detail="Агент не найден")
     try:
         return await agent_runner.run(agent_id, request.task)
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error))
     except Exception as error:
         raise HTTPException(status_code=502, detail=str(error))
 
@@ -124,16 +127,12 @@ def save_memory(request: MemoryRequest):
 def get_memory(agent_id: str):
     if get_agent(agent_id) is None:
         raise HTTPException(status_code=404, detail="Агент не найден")
-    return team_memory.get_recent(agent_id)
+    return team_memory.get_by_agent(agent_id)
 
 
 @app.post("/meetings")
 def create_meeting(request: MeetingRequest):
-    meeting_id = meeting_room.create_meeting(
-        title=request.title,
-        topic=request.topic,
-    )
-    return {"meeting_id": meeting_id}
+    return meeting_room.create_meeting(title=request.title)
 
 
 @app.post("/meetings/{meeting_id}/messages")
@@ -144,7 +143,7 @@ def add_meeting_message(meeting_id: str, request: MessageRequest):
         meeting_room.add_message(
             meeting_id=meeting_id,
             agent_id=request.agent_id,
-            content=request.content,
+            message=request.content,
         )
         return {"status": "message_added"}
     except ValueError as error:
@@ -176,23 +175,28 @@ def get_meeting(meeting_id: str):
 
 @app.post("/reputation")
 def add_reputation(request: ReputationRequest):
-    if get_agent(request.agent_id) is None:
-        raise HTTPException(status_code=404, detail="Агент не найден")
-    reputation.add_score(
-        agent_id=request.agent_id,
-        score=request.score,
-        reason=request.reason,
-    )
-    return {"status": "score_added"}
+    try:
+        return reputation.rate_agent(
+            agent_id=request.agent_id,
+            evaluator_id=request.evaluator_id,
+            scores=request.scores,
+            evidence=request.evidence,
+        )
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error))
 
 
 @app.get("/reputation")
 def get_all_reputation():
-    return reputation.get_all()
+    return {
+        agent_id: reputation.get_reputation(agent_id)
+        for agent_id in AGENTS
+    }
 
 
 @app.get("/reputation/{agent_id}")
 def get_agent_reputation(agent_id: str):
-    if get_agent(agent_id) is None:
-        raise HTTPException(status_code=404, detail="Агент не найден")
-    return reputation.get_reputation(agent_id)
+    try:
+        return reputation.get_reputation(agent_id)
+    except ValueError as error:
+        raise HTTPException(status_code=404, detail=str(error))
