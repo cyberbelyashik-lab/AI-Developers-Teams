@@ -1,11 +1,9 @@
-
 import os
 from pathlib import Path
 
 from dotenv import load_dotenv
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
-
 load_dotenv(ROOT_DIR / ".env")
 
 APP_NAME = os.getenv("APP_NAME", "AI Developers Teams")
@@ -19,6 +17,17 @@ AI_BASE_URL = os.getenv(
 ).rstrip("/")
 AI_MODEL = os.getenv("AI_MODEL", "")
 AI_API_KEY = os.getenv("AI_API_KEY", "")
+
+# Индивидуальные ключи агентов. Если отдельный ключ не задан,
+# используется общий AI_API_KEY для обратной совместимости.
+AGENT_API_KEYS = {
+    "manager": os.getenv("MANAGER_AI_API_KEY", "") or AI_API_KEY,
+    "architect": os.getenv("ARCHITECT_AI_API_KEY", "") or AI_API_KEY,
+    "developer": os.getenv("DEVELOPER_AI_API_KEY", "") or AI_API_KEY,
+    "reviewer": os.getenv("REVIEWER_AI_API_KEY", "") or AI_API_KEY,
+    "tester": os.getenv("TESTER_AI_API_KEY", "") or AI_API_KEY,
+    "auditor": os.getenv("AUDITOR_AI_API_KEY", "") or AI_API_KEY,
+}
 
 DATABASE_PATH = Path(
     os.getenv("DATABASE_PATH", "data/ai_developers.db")
