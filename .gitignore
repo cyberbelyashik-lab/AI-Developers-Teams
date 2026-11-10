@@ -11,10 +11,13 @@ __pycache__/
 .venv/
 venv/
 
-# Database
-data/
+# Databases
 *.db
+*.sqlite
 *.sqlite3
+
+# Logs
+*.log
 
 # IDE
 .vscode/
