@@ -1,0 +1,121 @@
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Developers Teams</title>
+<style>
+body {
+  margin: 0;
+  padding: 20px;
+  background: #101827;
+  color: white;
+  font-family: Arial, sans-serif;
+}
+main {
+  max-width: 650px;
+  margin: auto;
+}
+h1 { color: #70a5ff; }
+textarea {
+  width: 100%;
+  min-height: 110px;
+  padding: 12px;
+  box-sizing: border-box;
+  border-radius: 10px;
+  font-size: 16px;
+}
+button {
+  margin-top: 12px;
+  padding: 14px;
+  width: 100%;
+  background: #3478f6;
+  color: white;
+  border: 0;
+  border-radius: 10px;
+  font-size: 16px;
+}
+.card {
+  background: #202d40;
+  padding: 15px;
+  border-radius: 10px;
+  margin-top: 12px;
+}
+#result { white-space: pre-wrap; }
+</style>
+</head>
+<body>
+<main>
+<h1>AI Developers Teams</h1>
+<p>Твоя команда из шести ИИ-агентов</p>
+
+<div class="card">
+  <h3>Команда</h3>
+  <div id="agents">Загрузка агентов...</div>
+</div>
+
+<div class="card">
+  <h3>Новая задача</h3>
+  <textarea id="task" placeholder="Например: Создай сайт интернет-магазина"></textarea>
+  <button onclick="createPlan()">Составить план работы</button>
+</div>
+
+<div class="card">
+  <h3>Результат</h3>
+  <div id="result">Здесь появится план команды.</div>
+</div>
+</main>
+
+<script>
+async function loadAgents() {
+  try {
+    const response = await fetch('/agents');
+    if (!response.ok) throw new Error('Ошибка загрузки');
+    const agents = await response.json();
+    document.getElementById('agents').innerHTML =
+      agents.map(a => `<p>• ${a.name || a.id}</p>`).join('');
+  } catch (error) {
+    document.getElementById('agents').textContent =
+      'Не удалось загрузить команду.';
+  }
+}
+
+async function createPlan() {
+  const description = document.getElementById('task').value.trim();
+  const result = document.getElementById('result');
+
+  if (!description) {
+    result.textContent = 'Сначала напиши задачу.';
+    return;
+  }
+
+  result.textContent = 'Команда составляет план...';
+
+  try {
+    const response = await fetch('/tasks/plan', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({description})
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.detail || 'Ошибка сервера');
+    }
+
+    result.textContent =
+      'План создан!\n\n' +
+      data.tasks.map((t, i) =>
+        `${i + 1}. ${t.title}\nАгент: ${t.assigned_to}\n${t.description}`
+      ).join('\n\n');
+  } catch (error) {
+    result.textContent = 'Ошибка: ' + error.message;
+  }
+}
+
+loadAgents();
+</script>
+</body>
+</html>
