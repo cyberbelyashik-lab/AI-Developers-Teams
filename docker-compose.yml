@@ -1,0 +1,14 @@
+services:
+  api:
+    build: .
+    container_name: ai-developers-teams
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_PATH: /app/data/ai_developers.db
+    volumes:
+      - app_data:/app/data
+    restart: unless-stopped
+
+volumes:
+  app_data:
