@@ -1,49 +1,29 @@
 
-from backend.agents.definitions import get_all_agents, get_agent
-from backend.coordinator.manager import coordinator
+name: AI Developers Teams Tests
 
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
 
-def test_team_has_six_agents():
-    assert len(get_all_agents()) == 6
+jobs:
+  test:
+    runs-on: ubuntu-latest
 
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-def test_all_six_agents_exist():
-    agent_ids = [
-        "manager",
-        "architect",
-        "developer",
-        "reviewer",
-        "tester",
-        "auditor",
-    ]
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
 
-    for agent_id in agent_ids:
-        assert get_agent(agent_id) is not None
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
 
-
-def test_unknown_agent_does_not_exist():
-    assert get_agent("unknown_agent") is None
-
-
-def test_coordinator_creates_task_plan():
-    plan = coordinator.create_plan("Создать простой веб-сайт")
-
-    assert plan is not None
-    assert plan.status == "planned"
-    assert plan.user_request == "Создать простой веб-сайт"
-    assert len(plan.tasks) == 5
-    assert {task.assigned_to for task in plan.tasks} == {
-        "architect",
-        "developer",
-        "reviewer",
-        "tester",
-        "auditor",
-    }
-
-
-def test_coordinator_rejects_empty_description():
-    try:
-        coordinator.create_plan("   ")
-        assert False, "Ожидалась ошибка ValueError"
-    except ValueError:
-        pass
+      - name: Run tests
+        run: |
+          python -m pytest -v
