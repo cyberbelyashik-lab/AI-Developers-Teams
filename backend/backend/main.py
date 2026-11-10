@@ -1,5 +1,9 @@
 
+
+from pathlib import Path
+
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 from backend.agents.definitions import AGENTS, get_all_agents, get_agent
@@ -14,7 +18,7 @@ from backend.config import APP_NAME, APP_ENV, AI_MODEL, AI_API_KEY
 app = FastAPI(
     title=APP_NAME,
     description="AI Developers Teams — виртуальная команда ИИ-разработчиков",
-    version="0.2.0",
+    version="0.3.0",
 )
 
 
@@ -68,8 +72,27 @@ def root():
         "name": APP_NAME,
         "status": "running",
         "environment": APP_ENV,
-        "version": "0.2.0",
+        "version": "0.3.0",
+        "panel": "/panel",
+        "docs": "/docs",
     }
+
+
+# -------------------------
+# Панель управления
+# -------------------------
+
+@app.get("/panel", include_in_schema=False)
+def panel():
+    file_path = Path(__file__).resolve().parent / "backend" / "panel.html"
+
+    if not file_path.is_file():
+        raise HTTPException(
+            status_code=404,
+            detail="Файл панели управления не найден",
+        )
+
+    return FileResponse(file_path)
 
 
 # -------------------------
