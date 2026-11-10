@@ -1,11 +1,11 @@
 
 from backend.agents.definitions import get_agent
-from backend.ai_engine.provider import ai_provider
+from backend.ai_engine.provider import AIProvider
+from backend.config import AGENT_API_KEYS
 from backend.memory.store import team_memory
 
 
 class AgentRunner:
-
     async def run(self, agent_id: str, task: str):
         agent = get_agent(agent_id)
 
@@ -15,11 +15,12 @@ class AgentRunner:
         if not task.strip():
             raise ValueError("Задача не может быть пустой")
 
-        memories = team_memory.get_by_agent(agent_id, limit=10)
+        api_key = AGENT_API_KEYS.get(agent_id, "")
+        provider = AIProvider(api_key=api_key)
 
+        memories = team_memory.get_by_agent(agent_id, limit=10)
         memory_text = "\n".join(
-            f"- {item['content']}"
-            for item in memories
+            f"- {item['content']}" for item in memories
         )
 
         system_prompt = f"""
@@ -45,7 +46,7 @@ class AgentRunner:
 {task}
 """
 
-        result = await ai_provider.generate(
+        result = await provider.generate(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
         )
